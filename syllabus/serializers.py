@@ -44,6 +44,7 @@ class UserSyllabusSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSyllabus
         fields = '__all__'
+        read_only_fields = ['user']
 
 # Write serializers (flat — FK + writable fields only)
 class ModuleWriteSerializer(serializers.ModelSerializer):
