@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
 function Add() {
@@ -103,6 +103,10 @@ function Add() {
             {submitting ? 'Creating...' : 'Create Syllabus'}
           </button>
         </form>
+
+        <p className="pdf-or-link">
+          Or <Link to="/import">import from a PDF syllabus</Link>
+        </p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import Home from "./pages/Home";
 import Add from "./pages/Add";
+import ImportSyllabus from "./pages/ImportSyllabus";
 import StudyLog from "./pages/StudyLog";
 import StudyPlan from "./pages/StudyPlan";
 import Login from './components/Login';
@@ -48,6 +49,14 @@ function Sidebar({ isOpen, onClose }) {
         >
           <span className="sidebar-link-icon">➕</span>
           Add Syllabus
+        </NavLink>
+        <NavLink
+          to="/import"
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={onClose}
+        >
+          <span className="sidebar-link-icon">📥</span>
+          Import PDF
         </NavLink>
         <NavLink
           to="/study-log"
@@ -117,6 +126,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/add" element={<ProtectedRoute><Add /></ProtectedRoute>} />
+          <Route path="/import" element={<ProtectedRoute><ImportSyllabus /></ProtectedRoute>} />
           <Route path="/study-log" element={<ProtectedRoute><StudyLog /></ProtectedRoute>} />
           <Route path="/study-plan" element={<ProtectedRoute><StudyPlan /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />

@@ -4,10 +4,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta, date
 from math import ceil
+import io, json, os, re
 from .models import UserSyllabus, Module, Chapter, SubTopic, StudyLog
 from .serializers import (UserSyllabusSerializer, UserRegisterSerializer,
                            ModuleWriteSerializer, ChapterWriteSerializer, SubTopicWriteSerializer,
@@ -27,6 +29,117 @@ class UserSyllabusViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Automatically assign the syllabus to the currently logged-in user
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='analyze-pdf')
+    def analyze_pdf(self, request):
+        pdf_file = request.FILES.get('pdf')
+        if not pdf_file:
+            return Response({'error': 'No PDF file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extract text from PDF
+        import pdfplumber
+        text = ''
+        try:
+            with pdfplumber.open(io.BytesIO(pdf_file.read())) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + '\n'
+        except Exception as e:
+            return Response({'error': f'Failed to read PDF: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not text.strip():
+            return Response({'error': 'Could not extract text from PDF.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Call Claude API
+        import anthropic
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
+        if not api_key:
+            return Response({'error': 'ANTHROPIC_API_KEY not configured.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        client = anthropic.Anthropic(api_key=api_key)
+        prompt = (
+            'Analyze this syllabus document and extract the structure. '
+            'Return ONLY valid JSON with this exact format, no other text:\n'
+            '{\n'
+            '  "syllabus_name": "...",\n'
+            '  "modules": [\n'
+            '    {\n'
+            '      "module_name": "...",\n'
+            '      "weightage_marks": null,\n'
+            '      "chapters": [\n'
+            '        {\n'
+            '          "chapter_title": "...",\n'
+            '          "subtopics": ["topic1", "topic2"]\n'
+            '        }\n'
+            '      ]\n'
+            '    }\n'
+            '  ]\n'
+            '}\n\n'
+            f'Syllabus document:\n{text[:12000]}'
+        )
+
+        try:
+            message = client.messages.create(
+                model='claude-sonnet-4-6',
+                max_tokens=4096,
+                messages=[{'role': 'user', 'content': prompt}],
+            )
+        except Exception as e:
+            return Response({'error': f'AI analysis failed: {str(e)}'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        raw = message.content[0].text
+        # Strip markdown code fences if present
+        raw = re.sub(r'```(?:json)?\s*', '', raw)
+        raw = re.sub(r'```', '', raw).strip()
+
+        try:
+            structure = json.loads(raw)
+        except json.JSONDecodeError:
+            match = re.search(r'\{[\s\S]*\}', raw)
+            if match:
+                try:
+                    structure = json.loads(match.group())
+                except json.JSONDecodeError:
+                    return Response({'error': 'AI returned malformed JSON.'}, status=status.HTTP_502_BAD_GATEWAY)
+            else:
+                return Response({'error': 'AI returned malformed JSON.'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(structure)
+
+    @action(detail=False, methods=['post'], url_path='import-pdf')
+    def import_pdf(self, request):
+        data = request.data
+        syllabus_name = data.get('syllabus_name') or 'Imported Syllabus'
+        modules_data = data.get('modules', [])
+
+        if not modules_data:
+            return Response({'error': 'No syllabus structure provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            syllabus = UserSyllabus.objects.create(
+                user=request.user,
+                syllabus_name=syllabus_name,
+            )
+            for mod in modules_data:
+                module = Module.objects.create(
+                    syllabus=syllabus,
+                    module_name=mod.get('module_name') or 'Module',
+                    weightage_marks=mod.get('weightage_marks'),
+                )
+                for ch in mod.get('chapters', []):
+                    chapter = Chapter.objects.create(
+                        module=module,
+                        chapter_title=ch.get('chapter_title') or 'Chapter',
+                    )
+                    for topic_text in ch.get('subtopics', []):
+                        SubTopic.objects.create(chapter=chapter, topic_text=topic_text)
+
+        syllabus.refresh_from_db()
+        serializer = UserSyllabusSerializer(
+            UserSyllabus.objects.prefetch_related('modules__chapters__sub_topics').get(pk=syllabus.pk)
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'], url_path='study-plan')
     def study_plan(self, request, pk=None):
