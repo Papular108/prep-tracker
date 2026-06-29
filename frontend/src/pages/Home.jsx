@@ -124,9 +124,59 @@ function Home() {
     }, { total: 0, completed: 0 });
     const overallPct = overall.total === 0 ? 0 : Math.round((overall.completed / overall.total) * 100);
 
+    const nextExam = syllabi
+        .filter(s => s.estimated_exam_date && s.days_remaining !== null && s.days_remaining >= 0)
+        .sort((a, b) => a.days_remaining - b.days_remaining)[0] || null;
+
     const getDeleteEndpoint = (type) => {
         const map = { syllabus: '/api/syllabus/', module: '/api/modules/', chapter: '/api/chapters/', subtopic: '/api/subtopics/' };
         return map[type];
+    };
+
+    const cdColor = (daysRemaining) => {
+        if (daysRemaining === null || daysRemaining === undefined) return 'cd-green';
+        if (daysRemaining < 14) return 'cd-red';
+        if (daysRemaining < 30) return 'cd-amber';
+        return 'cd-green';
+    };
+
+    const CountdownBanner = ({ syllabus }) => {
+        const { days_remaining, total_days, days_elapsed, pace_status, required_daily_subtopics } = syllabus;
+        if (!syllabus.estimated_exam_date) return null;
+
+        const color = cdColor(days_remaining);
+        const passed = days_remaining !== null && days_remaining < 0;
+        const timePct = total_days > 0 ? Math.min(Math.round((days_elapsed / total_days) * 100), 100) : 0;
+
+        const pace = (() => {
+            if (pace_status === 'ahead') return { text: "You're ahead of schedule", cls: 'pace-ahead' };
+            if (pace_status === 'on_track') return { text: 'On track', cls: 'pace-track' };
+            if (pace_status === 'behind') return { text: `Behind — need ${required_daily_subtopics} subtopics/day`, cls: 'pace-behind' };
+            return null;
+        })();
+
+        return (
+            <div className="countdown-banner">
+                <div className="countdown-top-row">
+                    {passed ? (
+                        <span className="countdown-passed">Exam date passed</span>
+                    ) : (
+                        <>
+                            <span className={`countdown-days-value ${color}`}>{days_remaining}</span>
+                            <span className="countdown-days-label">days remaining</span>
+                        </>
+                    )}
+                </div>
+                {!passed && total_days > 0 && (
+                    <>
+                        <div className="countdown-time-bar">
+                            <div className={`countdown-time-fill ${color}`} style={{ width: `${timePct}%` }} />
+                        </div>
+                        {pace && <div className={`countdown-pace ${pace.cls}`}>{pace.text}</div>}
+                    </>
+                )}
+            </div>
+        );
     };
 
     const InlineEdit = ({ type, id, currentValue, display }) => {
@@ -176,6 +226,13 @@ function Home() {
                     <div className="progress-bar-lg">
                         <div className="progress-fill-lg" style={{ width: `${overallPct}%` }} />
                     </div>
+                    {nextExam && (
+                        <div className="next-exam-row">
+                            <span className="next-exam-label">Next Exam</span>
+                            <span className="next-exam-text"><strong>{nextExam.syllabus_name}</strong> in</span>
+                            <span className={`next-exam-days ${cdColor(nextExam.days_remaining)}`}>{nextExam.days_remaining} days</span>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -200,9 +257,7 @@ function Home() {
                                     <InlineEdit type="syllabus" id={syllabus.id} currentValue={syllabus.syllabus_name} display={syllabus.syllabus_name} />
                                 </span>
                             </div>
-                            {syllabus.estimated_exam_date && (
-                                <div className="syllabus-meta">Exam: {syllabus.estimated_exam_date}</div>
-                            )}
+                            <CountdownBanner syllabus={syllabus} />
                             <div className="progress-row">
                                 <div className="progress-bar-sm">
                                     <div className="progress-fill-sm" style={{ width: `${sylProgress.percentage}%` }} />

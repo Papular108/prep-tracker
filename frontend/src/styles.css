@@ -1033,6 +1033,111 @@ input, select, textarea { font-family: inherit; }
   font-weight: 500;
 }
 
+/* ===== Countdown Banner ===== */
+.countdown-banner {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.countdown-top-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.countdown-days-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.countdown-days-value.cd-green { color: var(--success); }
+.countdown-days-value.cd-amber { color: #f59e0b; }
+.countdown-days-value.cd-red   { color: var(--danger); }
+
+.countdown-days-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.countdown-passed {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.countdown-time-bar {
+  background: #e2e8f0;
+  border-radius: 100px;
+  overflow: hidden;
+  height: 5px;
+  margin-bottom: 5px;
+}
+
+.countdown-time-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s ease;
+}
+
+.countdown-time-fill.cd-green { background: linear-gradient(90deg, #10b981, #34d399); }
+.countdown-time-fill.cd-amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.countdown-time-fill.cd-red   { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+.countdown-pace {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.countdown-pace.pace-ahead  { color: var(--success); }
+.countdown-pace.pace-track  { color: #3b82f6; }
+.countdown-pace.pace-behind { color: var(--danger); }
+
+/* ===== Next Exam (Overall Progress) ===== */
+.next-exam-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  flex-wrap: wrap;
+}
+
+.next-exam-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #64748b;
+}
+
+.next-exam-text {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.next-exam-text strong {
+  color: #e2e8f0;
+}
+
+.next-exam-days {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.next-exam-days.cd-green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.next-exam-days.cd-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.next-exam-days.cd-red   { background: rgba(239, 68, 68, 0.15);  color: #f87171; }
+
 /* ===== No logs ===== */
 .no-logs {
   color: var(--text-muted);

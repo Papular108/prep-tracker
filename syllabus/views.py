@@ -19,7 +19,9 @@ class UserSyllabusViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Only return the data belonging to the logged-in user
-        return UserSyllabus.objects.filter(user=self.request.user)
+        return UserSyllabus.objects.filter(user=self.request.user).prefetch_related(
+            'modules__chapters__sub_topics'
+        )
 
     def perform_create(self, serializer):
         # Automatically assign the syllabus to the currently logged-in user
