@@ -1699,6 +1699,7 @@ input, select, textarea { font-family: inherit; }
 }
 
 @media (max-width: 768px) {
+  /* --- Sidebar / layout --- */
   .sidebar {
     transform: translateX(-100%);
     z-index: 101;
@@ -1721,6 +1722,7 @@ input, select, textarea { font-family: inherit; }
     padding: 70px 16px 24px;
   }
 
+  /* --- Overall progress --- */
   .overall-progress-pct {
     font-size: 2.25rem;
   }
@@ -1729,6 +1731,7 @@ input, select, textarea { font-family: inherit; }
     padding: 22px 20px;
   }
 
+  /* --- Forms --- */
   .form-row {
     flex-direction: column;
   }
@@ -1736,14 +1739,171 @@ input, select, textarea { font-family: inherit; }
   .form-row > * {
     width: 100% !important;
   }
+
+  /* 44px touch targets for inputs and buttons */
+  .form-input,
+  .form-select {
+    min-height: 44px;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 10px 20px;
+  }
+
+  .btn-lg {
+    min-height: 44px;
+  }
+
+  /* --- Dashboard (Home.jsx) --- */
+  .syllabus-card {
+    padding: 18px 16px;
+  }
+
+  .module-block {
+    margin-left: 0;
+    margin-bottom: 10px;
+  }
+
+  .chapter-block {
+    margin-left: 8px;
+    padding: 6px 0;
+  }
+
+  .subtopic-item {
+    padding-left: 8px;
+  }
+
+  /* Always show action buttons — no hover required on touch */
+  .item-actions {
+    opacity: 1;
+  }
+
+  .log-delete-btn {
+    opacity: 1;
+  }
+
+  .progress-bar-lg,
+  .progress-bar-sm,
+  .progress-bar-xs {
+    width: 100%;
+  }
+
+  .countdown-banner {
+    padding: 12px 16px;
+  }
+
+  .countdown-days-value {
+    font-size: 3rem;
+  }
+
+  .module-badge {
+    font-size: 0.7rem;
+  }
+
+  /* --- Study Log (StudyLog.jsx) --- */
+  .log-section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .log-table {
+    min-width: 540px;
+  }
+
+  .log-date-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* --- Study Plan (StudyPlan.jsx) --- */
+  .sp-summary-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sp-summary-divider {
+    display: none;
+  }
+
+  .sp-days-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sp-week-card {
+    width: 100%;
+  }
+
+  /* --- Analytics (Analytics.jsx) --- */
+  .heatmap-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .card {
+    padding: 16px 14px;
+  }
+
+  /* --- Auth pages --- */
+  .auth-card {
+    width: 100%;
+    max-width: none;
+    border-radius: 12px;
+  }
+
+  /* --- Add / Import pages --- */
+  .add-page .form-card {
+    width: 100%;
+    padding: 20px 16px;
+  }
+
+  .pdf-upload-area {
+    min-height: 120px;
+  }
 }
 
 @media (max-width: 480px) {
+  /* --- Auth --- */
   .auth-card {
     padding: 28px 20px;
+    max-width: 100%;
+    border-radius: 10px;
   }
 
+  /* --- Summary grid --- */
   .summary-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* --- Overall progress --- */
+  .overall-progress-pct {
+    font-size: 1.9rem;
+  }
+
+  .overall-progress-label {
+    font-size: 0.75rem;
+  }
+
+  /* --- Page title --- */
+  .page-title {
+    font-size: 1.15rem;
+  }
+
+  /* --- Countdown --- */
+  .countdown-days-value {
+    font-size: 2.5rem;
+  }
+
+  /* --- Module badge --- */
+  .module-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+
+  /* --- Study Plan summary items --- */
+  .sp-summary-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
   }
 }
