@@ -1409,6 +1409,104 @@ input, select, textarea { font-family: inherit; }
   gap: 10px;
 }
 
+/* ===== Analytics / Charts ===== */
+.chart-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.chart-card-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+.chart-empty {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  padding: 20px 0;
+  text-align: center;
+}
+
+.chart-tooltip {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: #f8fafc;
+  box-shadow: var(--shadow-lg);
+}
+
+.chart-tooltip-label {
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.chart-tooltip-value {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Heatmap */
+.heatmap-wrap {
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.heatmap-day-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  float: left;
+  margin-right: 6px;
+  padding-top: 1px;
+}
+
+.heatmap-day-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  height: 13px;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: 3px;
+}
+
+.heatmap-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap-cell {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.heatmap-cell.empty {
+  background: transparent;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  clear: both;
+}
+
+.heatmap-legend-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
 /* ===== No logs ===== */
 .no-logs {
   color: var(--text-muted);

@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta, date
+from collections import defaultdict
 from math import ceil
 import io, json, os, re
 from .models import UserSyllabus, Module, Chapter, SubTopic, StudyLog
@@ -311,6 +312,81 @@ class StudyLogViewSet(viewsets.ModelViewSet):
         if subtopic and subtopic.chapter.module.syllabus.user != self.request.user:
             raise PermissionDenied
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        qs = StudyLog.objects.filter(user=request.user)
+        today = timezone.localdate()
+
+        # 1. daily_hours: last 90 days
+        start_90 = today - timedelta(days=89)
+        daily_qs = (
+            qs.filter(date__gte=start_90)
+            .values('date')
+            .annotate(hours=Sum('hours_spent'))
+        )
+        daily_map = {row['date']: float(row['hours']) for row in daily_qs}
+        daily_hours = []
+        for i in range(90):
+            d = start_90 + timedelta(days=i)
+            daily_hours.append({'date': d.isoformat(), 'hours': daily_map.get(d, 0)})
+
+        # 2. hours_by_syllabus
+        syl_qs = (
+            qs.values('syllabus__syllabus_name')
+            .annotate(total_hours=Sum('hours_spent'))
+            .order_by('-total_hours')
+        )
+        hours_by_syllabus = [
+            {'syllabus_name': row['syllabus__syllabus_name'], 'total_hours': float(row['total_hours'])}
+            for row in syl_qs
+        ]
+
+        # 3. completion_by_module
+        syllabi = UserSyllabus.objects.filter(user=request.user).prefetch_related(
+            'modules__chapters__sub_topics'
+        )
+        completion_by_module = []
+        for syl in syllabi:
+            for module in syl.modules.all():
+                total = 0
+                completed = 0
+                for chapter in module.chapters.all():
+                    sts = chapter.sub_topics.all()
+                    total += sts.count()
+                    completed += sts.filter(is_completed=True).count()
+                pct = round((completed / total) * 100) if total > 0 else 0
+                completion_by_module.append({
+                    'module_name': module.module_name,
+                    'syllabus_name': syl.syllabus_name,
+                    'completed': completed,
+                    'total': total,
+                    'percentage': pct,
+                })
+
+        # 4. weekly_totals: last 12 weeks (Monday-anchored)
+        week_start_of_today = today - timedelta(days=today.weekday())
+        start_12w = week_start_of_today - timedelta(weeks=11)
+        weekly_map = defaultdict(float)
+        for row in qs.filter(date__gte=start_12w).values('date').annotate(hours=Sum('hours_spent')):
+            d = row['date']
+            week_monday = d - timedelta(days=d.weekday())
+            weekly_map[week_monday] += float(row['hours'])
+
+        weekly_totals = []
+        for i in range(12):
+            wk = start_12w + timedelta(weeks=i)
+            weekly_totals.append({
+                'week_label': wk.strftime('%b %d'),
+                'hours': round(weekly_map.get(wk, 0), 2),
+            })
+
+        return Response({
+            'daily_hours': daily_hours,
+            'hours_by_syllabus': hours_by_syllabus,
+            'completion_by_module': completion_by_module,
+            'weekly_totals': weekly_totals,
+        })
 
     @action(detail=False, methods=['get'])
     def summary(self, request):

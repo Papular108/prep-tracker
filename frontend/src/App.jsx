@@ -5,6 +5,7 @@ import Add from "./pages/Add";
 import ImportSyllabus from "./pages/ImportSyllabus";
 import StudyLog from "./pages/StudyLog";
 import StudyPlan from "./pages/StudyPlan";
+import Analytics from "./pages/Analytics";
 import Login from './components/Login';
 import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -74,6 +75,14 @@ function Sidebar({ isOpen, onClose }) {
           <span className="sidebar-link-icon">🗓</span>
           Study Plan
         </NavLink>
+        <NavLink
+          to="/analytics"
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={onClose}
+        >
+          <span className="sidebar-link-icon">📈</span>
+          Analytics
+        </NavLink>
       </nav>
 
       <div className="sidebar-bottom">
@@ -129,6 +138,7 @@ function App() {
           <Route path="/import" element={<ProtectedRoute><ImportSyllabus /></ProtectedRoute>} />
           <Route path="/study-log" element={<ProtectedRoute><StudyLog /></ProtectedRoute>} />
           <Route path="/study-plan" element={<ProtectedRoute><StudyPlan /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
