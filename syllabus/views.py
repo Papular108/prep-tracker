@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -19,6 +20,37 @@ class UserSyllabusViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Automatically assign the syllabus to the currently logged-in user
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def progress(self, request, pk=None):
+        syllabus = self.get_object()
+        total = 0
+        completed = 0
+        modules_data = []
+        for module in syllabus.modules.all():
+            mod_total = 0
+            mod_completed = 0
+            for chapter in module.chapters.all():
+                subtopics = chapter.sub_topics.all()
+                mod_total += subtopics.count()
+                mod_completed += subtopics.filter(is_completed=True).count()
+            total += mod_total
+            completed += mod_completed
+            mod_pct = round((mod_completed / mod_total) * 100) if mod_total > 0 else 0
+            modules_data.append({
+                'id': module.id,
+                'name': module.module_name,
+                'total_subtopics': mod_total,
+                'completed_subtopics': mod_completed,
+                'percentage': mod_pct,
+            })
+        pct = round((completed / total) * 100) if total > 0 else 0
+        return Response({
+            'total_subtopics': total,
+            'completed_subtopics': completed,
+            'percentage': pct,
+            'modules': modules_data,
+        })
 
 # 2. Module ViewSet
 class ModuleViewSet(viewsets.ModelViewSet):

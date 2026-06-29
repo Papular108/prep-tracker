@@ -70,6 +70,38 @@ function Home() {
             .catch((err) => alert(err));
     };
 
+    const calcProgress = (modules) => {
+        let total = 0, completed = 0;
+        for (const mod of modules) {
+            for (const ch of mod.chapters) {
+                total += ch.sub_topics.length;
+                completed += ch.sub_topics.filter(s => s.is_completed).length;
+            }
+        }
+        return { total, completed, percentage: total === 0 ? 0 : Math.round((completed / total) * 100) };
+    };
+
+    const calcModuleProgress = (mod) => {
+        let total = 0, completed = 0;
+        for (const ch of mod.chapters) {
+            total += ch.sub_topics.length;
+            completed += ch.sub_topics.filter(s => s.is_completed).length;
+        }
+        return { total, completed, percentage: total === 0 ? 0 : Math.round((completed / total) * 100) };
+    };
+
+    const ProgressBar = ({ percentage, height = 8, style = {} }) => (
+        <div style={{ background: '#e9ecef', borderRadius: '4px', overflow: 'hidden', height, ...style }}>
+            <div style={{ width: `${percentage}%`, height: '100%', background: '#28A745', transition: 'width 0.3s ease' }} />
+        </div>
+    );
+
+    const overall = syllabi.reduce((acc, syl) => {
+        const p = calcProgress(syl.modules);
+        return { total: acc.total + p.total, completed: acc.completed + p.completed };
+    }, { total: 0, completed: 0 });
+    const overallPct = overall.total === 0 ? 0 : Math.round((overall.completed / overall.total) * 100);
+
     const inputStyle = { padding: '5px', marginRight: '6px', borderRadius: '3px', border: '1px solid #ccc' };
     const addBtnStyle = { padding: '5px 10px', backgroundColor: '#28A745', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', marginRight: '6px' };
     const cancelBtnStyle = { padding: '5px 10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' };
@@ -78,23 +110,57 @@ function Home() {
     return (
         <div>
             <h2>My Syllabus Overview</h2>
+
+            {/* Overall Progress Summary */}
+            {syllabi.length > 0 && (
+                <div style={{ marginBottom: '24px', border: '1px solid #28A745', borderRadius: '6px', padding: '16px', background: '#f8fff9' }}>
+                    <h3 style={{ margin: '0 0 10px 0', color: '#1a5c2a' }}>Overall Progress</h3>
+                    <div style={{ display: 'flex', gap: '24px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#444' }}><strong>{syllabi.length}</strong> {syllabi.length === 1 ? 'syllabus' : 'syllabi'}</span>
+                        <span style={{ color: '#444' }}><strong>{overall.completed}/{overall.total}</strong> subtopics completed</span>
+                        <span style={{ color: '#28A745', fontWeight: 'bold' }}>{overallPct}%</span>
+                    </div>
+                    <ProgressBar percentage={overallPct} height={12} />
+                </div>
+            )}
+
             {syllabi.length === 0 && <p style={{ color: '#666' }}>No syllabi yet. <a href="/add">Add one</a>.</p>}
-            {syllabi.map((syllabus) => (
+            {syllabi.map((syllabus) => {
+                const sylProgress = calcProgress(syllabus.modules);
+                return (
                 <div key={syllabus.id} style={{ marginBottom: '30px', border: '1px solid #ddd', borderRadius: '6px', padding: '16px' }}>
                     <h3 style={{ margin: '0 0 4px 0' }}>{syllabus.syllabus_name}</h3>
                     {syllabus.estimated_exam_date && (
-                        <p style={{ margin: '0 0 12px 0', color: '#666', fontSize: '0.9em' }}>Exam: {syllabus.estimated_exam_date}</p>
+                        <p style={{ margin: '0 0 6px 0', color: '#666', fontSize: '0.9em' }}>Exam: {syllabus.estimated_exam_date}</p>
                     )}
+                    {/* Syllabus progress bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                        <ProgressBar percentage={sylProgress.percentage} style={{ flex: 1 }} />
+                        <span style={{ fontSize: '0.85em', color: '#555', whiteSpace: 'nowrap' }}>
+                            {sylProgress.completed}/{sylProgress.total} completed ({sylProgress.percentage}%)
+                        </span>
+                    </div>
 
                     {/* Modules */}
-                    {syllabus.modules.map((module) => (
+                    {syllabus.modules.map((module) => {
+                        const modProgress = calcModuleProgress(module);
+                        return (
                         <div key={module.id} style={{ marginLeft: '16px', marginBottom: '16px', borderLeft: '3px solid #007BFF', paddingLeft: '12px' }}>
-                            <div style={{ marginBottom: '8px' }}>
+                            <div style={{ marginBottom: '4px' }}>
                                 <strong>{module.module_name}</strong>
                                 {module.weightage_marks && (
                                     <span style={{ marginLeft: '8px', color: '#666', fontSize: '0.85em' }}>({module.weightage_marks} marks)</span>
                                 )}
                             </div>
+                            {/* Module progress bar */}
+                            {modProgress.total > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    <ProgressBar percentage={modProgress.percentage} style={{ flex: 1, maxWidth: '200px' }} />
+                                    <span style={{ fontSize: '0.78em', color: '#777' }}>
+                                        {modProgress.completed}/{modProgress.total} ({modProgress.percentage}%)
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Chapters */}
                             {module.chapters.map((chapter) => (
@@ -158,7 +224,8 @@ function Home() {
                                 )}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
 
                     {/* Add Module */}
                     <div style={{ marginLeft: '16px', marginTop: '8px' }}>
@@ -187,7 +254,8 @@ function Home() {
                         )}
                     </div>
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
