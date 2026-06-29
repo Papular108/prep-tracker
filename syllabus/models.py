@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 # 1. Master Table for a Syllabus
 class UserSyllabus(models.Model):
@@ -39,3 +40,16 @@ class SubTopic(models.Model):
 
     def __str__(self):
         return f"{self.chapter.chapter_title} -> {self.topic_text[:30]}"
+
+# 5. Daily Study Log
+class StudyLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="study_logs")
+    syllabus = models.ForeignKey(UserSyllabus, on_delete=models.CASCADE, related_name="study_logs")
+    subtopic = models.ForeignKey(SubTopic, on_delete=models.SET_NULL, null=True, blank=True, related_name="study_logs")
+    date = models.DateField(default=timezone.localdate)
+    hours_spent = models.DecimalField(max_digits=4, decimal_places=2)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} — {self.date} — {self.hours_spent}h"

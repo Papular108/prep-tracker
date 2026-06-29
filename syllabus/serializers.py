@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserSyllabus, Module, Chapter, SubTopic
+from .models import UserSyllabus, Module, Chapter, SubTopic, StudyLog
 
 # 1. User Registration Serializer
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -61,3 +61,12 @@ class SubTopicWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubTopic
         fields = ['id', 'chapter', 'topic_text', 'is_completed', 'has_notes']
+
+class StudyLogSerializer(serializers.ModelSerializer):
+    subtopic_text = serializers.CharField(source='subtopic.topic_text', read_only=True, default=None)
+    syllabus_name = serializers.CharField(source='syllabus.syllabus_name', read_only=True)
+
+    class Meta:
+        model = StudyLog
+        fields = ['id', 'user', 'syllabus', 'syllabus_name', 'subtopic', 'subtopic_text', 'date', 'hours_spent', 'notes', 'created_at']
+        read_only_fields = ['user', 'created_at']

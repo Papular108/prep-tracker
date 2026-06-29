@@ -4,9 +4,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import PermissionDenied
-from .models import UserSyllabus, Module, Chapter, SubTopic
+from django.db.models import Sum
+from django.utils import timezone
+from datetime import timedelta
+from .models import UserSyllabus, Module, Chapter, SubTopic, StudyLog
 from .serializers import (UserSyllabusSerializer, UserRegisterSerializer,
-                           ModuleWriteSerializer, ChapterWriteSerializer, SubTopicWriteSerializer)
+                           ModuleWriteSerializer, ChapterWriteSerializer, SubTopicWriteSerializer,
+                           StudyLogSerializer)
 
 # 1. Simplified ViewSet for the entire Syllabus tree
 class UserSyllabusViewSet(viewsets.ModelViewSet):
@@ -94,7 +98,54 @@ class SubTopicViewSet(viewsets.ModelViewSet):
             raise PermissionDenied
         serializer.save()
 
-# 5. Registration View (Kept as is)
+# 5. StudyLog ViewSet
+class StudyLogViewSet(viewsets.ModelViewSet):
+    serializer_class = StudyLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return StudyLog.objects.filter(user=self.request.user).order_by('-date', '-created_at')
+
+    def perform_create(self, serializer):
+        syllabus = serializer.validated_data['syllabus']
+        if syllabus.user != self.request.user:
+            raise PermissionDenied
+        subtopic = serializer.validated_data.get('subtopic')
+        if subtopic and subtopic.chapter.module.syllabus.user != self.request.user:
+            raise PermissionDenied
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        qs = StudyLog.objects.filter(user=request.user)
+        today = timezone.localdate()
+        week_start = today - timedelta(days=today.weekday())
+
+        total_hours = qs.aggregate(total=Sum('hours_spent'))['total'] or 0
+        today_hours = qs.filter(date=today).aggregate(total=Sum('hours_spent'))['total'] or 0
+        this_week_hours = qs.filter(date__gte=week_start).aggregate(total=Sum('hours_spent'))['total'] or 0
+
+        # Streak: consecutive days ending today (or yesterday)
+        dates = set(qs.values_list('date', flat=True))
+        streak = 0
+        current = today
+        while current in dates:
+            streak += 1
+            current -= timedelta(days=1)
+        if streak == 0:
+            current = today - timedelta(days=1)
+            while current in dates:
+                streak += 1
+                current -= timedelta(days=1)
+
+        return Response({
+            'total_hours': float(total_hours),
+            'today_hours': float(today_hours),
+            'this_week_hours': float(this_week_hours),
+            'streak': streak,
+        })
+
+# 6. Registration View (Kept as is)
 class RegisterView(APIView):
     permission_classes = [AllowAny] 
     serializer_class = UserRegisterSerializer

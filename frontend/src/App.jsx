@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Home from "./pages/Home";
 import Add from "./pages/Add";
+import StudyLog from "./pages/StudyLog";
 import Login from './components/Login';
 import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -32,6 +33,7 @@ function NavBar() {
     <nav style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #eee' }}>
       <Link to="/" style={{ marginRight: '15px', textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>Dashboard</Link>
       <Link to="/add" style={{ marginRight: '15px', textDecoration: 'none', color: '#666' }}>Add Syllabus</Link>
+      <Link to="/study-log" style={{ marginRight: '15px', textDecoration: 'none', color: '#666' }}>Study Log</Link>
       {isLoggedIn ? (
         <button
           onClick={handleLogout}
@@ -63,6 +65,11 @@ function App() {
           <Route path="/add" element={
             <ProtectedRoute>
               <Add />
+            </ProtectedRoute>
+          } />
+          <Route path="/study-log" element={
+            <ProtectedRoute>
+              <StudyLog />
             </ProtectedRoute>
           } />
           <Route path="/login" element={<Login />} />
