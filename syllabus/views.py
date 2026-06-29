@@ -6,7 +6,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Sum
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
+from math import ceil
 from .models import UserSyllabus, Module, Chapter, SubTopic, StudyLog
 from .serializers import (UserSyllabusSerializer, UserRegisterSerializer,
                            ModuleWriteSerializer, ChapterWriteSerializer, SubTopicWriteSerializer,
@@ -26,6 +27,87 @@ class UserSyllabusViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Automatically assign the syllabus to the currently logged-in user
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def study_plan(self, request, pk=None):
+        syllabus = self.get_object()
+
+        if not syllabus.estimated_exam_date:
+            return Response({'error': 'No exam date set for this syllabus.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        today = date.today()
+        exam_date = syllabus.estimated_exam_date
+        buffer_days = (syllabus.revision_buffer_months or 0) * 30
+        study_end = exam_date - timedelta(days=buffer_days)
+
+        if study_end <= today:
+            return Response({'error': 'Study period has ended — you are in revision phase or past the exam date.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        subtopics = list(
+            SubTopic.objects.filter(
+                chapter__module__syllabus=syllabus,
+                is_completed=False,
+            ).select_related('chapter', 'chapter__module').order_by(
+                'chapter__module__id', 'chapter__id', 'id'
+            )
+        )
+
+        total = len(subtopics)
+        days_available = (study_end - today).days
+        per_day = ceil(total / days_available) if total > 0 else 0
+
+        # Distribute subtopics day by day
+        plan_days = []
+        idx = 0
+        current_date = today
+        while current_date < study_end:
+            batch = subtopics[idx:idx + per_day] if idx < total else []
+            if batch:
+                plan_days.append({
+                    'date': current_date.isoformat(),
+                    'subtopics': [
+                        {
+                            'id': st.id,
+                            'topic_text': st.topic_text,
+                            'chapter_title': st.chapter.chapter_title,
+                            'module_name': st.chapter.module.module_name,
+                            'is_completed': st.is_completed,
+                        }
+                        for st in batch
+                    ]
+                })
+            idx += per_day if per_day else 1
+            current_date += timedelta(days=1)
+            if idx >= total:
+                break
+
+        # Group by week (Monday-anchored)
+        weeks = []
+        current_week = None
+        for day in plan_days:
+            d = date.fromisoformat(day['date'])
+            week_start = d - timedelta(days=d.weekday())
+            week_end = week_start + timedelta(days=6)
+            week_key = week_start.isoformat()
+            if current_week is None or current_week['week_start'] != week_key:
+                current_week = {
+                    'week_start': week_key,
+                    'week_label': f"{week_start.strftime('%b %d')} \u2013 {week_end.strftime('%b %d, %Y')}",
+                    'days': [],
+                }
+                weeks.append(current_week)
+            current_week['days'].append(day)
+
+        return Response({
+            'summary': {
+                'total_subtopics': total,
+                'study_days': days_available,
+                'per_day': per_day,
+                'revision_start': study_end.isoformat(),
+                'exam_date': exam_date.isoformat(),
+            },
+            'weeks': weeks,
+        })
 
     @action(detail=True, methods=['get'])
     def progress(self, request, pk=None):

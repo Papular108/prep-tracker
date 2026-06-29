@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocati
 import Home from "./pages/Home";
 import Add from "./pages/Add";
 import StudyLog from "./pages/StudyLog";
+import StudyPlan from "./pages/StudyPlan";
 import Login from './components/Login';
 import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -55,6 +56,14 @@ function Sidebar({ isOpen, onClose }) {
         >
           <span className="sidebar-link-icon">📅</span>
           Study Log
+        </NavLink>
+        <NavLink
+          to="/study-plan"
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={onClose}
+        >
+          <span className="sidebar-link-icon">🗓</span>
+          Study Plan
         </NavLink>
       </nav>
 
@@ -109,6 +118,7 @@ function App() {
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/add" element={<ProtectedRoute><Add /></ProtectedRoute>} />
           <Route path="/study-log" element={<ProtectedRoute><StudyLog /></ProtectedRoute>} />
+          <Route path="/study-plan" element={<ProtectedRoute><StudyPlan /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
