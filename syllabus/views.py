@@ -28,7 +28,7 @@ class UserSyllabusViewSet(viewsets.ModelViewSet):
         # Automatically assign the syllabus to the currently logged-in user
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], url_path='study-plan')
     def study_plan(self, request, pk=None):
         syllabus = self.get_object()
 
