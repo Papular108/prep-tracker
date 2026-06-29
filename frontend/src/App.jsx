@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import Home from "./pages/Home";
 import Add from "./pages/Add";
 import StudyLog from "./pages/StudyLog";
@@ -8,74 +8,111 @@ import Register from './components/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ACCESS_TOKEN, REFRESH_TOKEN } from './constants';
 
-function NavBar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem(ACCESS_TOKEN));
+const AUTH_PATHS = ['/login', '/register'];
+
+function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const sync = () => setIsLoggedIn(!!localStorage.getItem(ACCESS_TOKEN));
-    window.addEventListener('storage', sync);
-    const interval = setInterval(sync, 500);
-    return () => {
-      window.removeEventListener('storage', sync);
-      clearInterval(interval);
-    };
-  }, []);
+  const username = localStorage.getItem('username') || 'User';
 
   const handleLogout = () => {
     localStorage.removeItem(ACCESS_TOKEN);
     localStorage.removeItem(REFRESH_TOKEN);
-    setIsLoggedIn(false);
+    localStorage.removeItem('username');
     navigate('/login');
+    onClose();
   };
 
   return (
-    <nav style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #eee' }}>
-      <Link to="/" style={{ marginRight: '15px', textDecoration: 'none', color: '#333', fontWeight: 'bold' }}>Dashboard</Link>
-      <Link to="/add" style={{ marginRight: '15px', textDecoration: 'none', color: '#666' }}>Add Syllabus</Link>
-      <Link to="/study-log" style={{ marginRight: '15px', textDecoration: 'none', color: '#666' }}>Study Log</Link>
-      {isLoggedIn ? (
-        <button
-          onClick={handleLogout}
-          style={{ background: 'none', border: '1px solid #dc3545', color: '#dc3545', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer' }}
+    <aside className={`sidebar${isOpen ? ' open' : ''}`}>
+      <div className="sidebar-logo">
+        <div className="sidebar-logo-text">PrepTracker</div>
+        <div className="sidebar-logo-sub">Study Dashboard</div>
+      </div>
+
+      <nav className="sidebar-nav">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={onClose}
         >
-          Logout
+          <span className="sidebar-link-icon">📊</span>
+          Dashboard
+        </NavLink>
+        <NavLink
+          to="/add"
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={onClose}
+        >
+          <span className="sidebar-link-icon">➕</span>
+          Add Syllabus
+        </NavLink>
+        <NavLink
+          to="/study-log"
+          className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+          onClick={onClose}
+        >
+          <span className="sidebar-link-icon">📅</span>
+          Study Log
+        </NavLink>
+      </nav>
+
+      <div className="sidebar-bottom">
+        <div className="sidebar-user">
+          <div className="sidebar-avatar">{username[0]?.toUpperCase() || 'U'}</div>
+          <span className="sidebar-username">{username}</span>
+        </div>
+        <button className="sidebar-logout" onClick={handleLogout}>
+          Sign Out
         </button>
-      ) : (
-        <>
-          <Link to="/login" style={{ marginRight: '15px', textDecoration: 'none', color: '#007BFF' }}>Login</Link>
-          <Link to="/register" style={{ textDecoration: 'none', color: '#28A745' }}>Register</Link>
-        </>
-      )}
-    </nav>
+      </div>
+    </aside>
+  );
+}
+
+function AppShell({ children }) {
+  const location = useLocation();
+  const isAuth = AUTH_PATHS.includes(location.pathname);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (isAuth) return <>{children}</>;
+
+  return (
+    <div className="app-layout">
+      {/* Mobile top bar */}
+      <div className="mobile-header">
+        <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
+        <span className="mobile-header-title">PrepTracker</span>
+      </div>
+
+      {/* Mobile overlay */}
+      <div
+        className={`sidebar-overlay${sidebarOpen ? ' open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <main className="content-area">
+        {children}
+      </main>
+    </div>
   );
 }
 
 function App() {
   return (
     <Router>
-      <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px' }}>
-        <NavBar />
+      <AppShell>
         <Routes>
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          } />
-          <Route path="/add" element={
-            <ProtectedRoute>
-              <Add />
-            </ProtectedRoute>
-          } />
-          <Route path="/study-log" element={
-            <ProtectedRoute>
-              <StudyLog />
-            </ProtectedRoute>
-          } />
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/add" element={<ProtectedRoute><Add /></ProtectedRoute>} />
+          <Route path="/study-log" element={<ProtectedRoute><StudyLog /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
-      </div>
+      </AppShell>
     </Router>
   );
 }

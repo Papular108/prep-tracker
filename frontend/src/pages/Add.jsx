@@ -11,6 +11,7 @@ function Add() {
     revision_buffer_months: 2,
   });
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,6 +20,7 @@ function Add() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       const payload = { ...form };
       if (!payload.estimated_exam_date) delete payload.estimated_exam_date;
@@ -28,68 +30,80 @@ function Add() {
     } catch (err) {
       setError('Failed to create syllabus. Please check your inputs.');
       console.error(err.response?.data);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const fieldStyle = { width: '100%', padding: '8px', boxSizing: 'border-box' };
-  const labelStyle = { display: 'block', marginBottom: '5px', fontWeight: 'bold' };
-  const groupStyle = { marginBottom: '15px' };
-
   return (
-    <div style={{ maxWidth: '500px' }}>
-      <h2>Add New Syllabus</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div style={groupStyle}>
-          <label style={labelStyle}>Syllabus Name *</label>
-          <input
-            type="text"
-            name="syllabus_name"
-            value={form.syllabus_name}
-            onChange={handleChange}
-            style={fieldStyle}
-            required
-          />
-        </div>
-        <div style={groupStyle}>
-          <label style={labelStyle}>Estimated Exam Date</label>
-          <input
-            type="date"
-            name="estimated_exam_date"
-            value={form.estimated_exam_date}
-            onChange={handleChange}
-            style={fieldStyle}
-          />
-        </div>
-        <div style={groupStyle}>
-          <label style={labelStyle}>Exam Month (Nepali)</label>
-          <input
-            type="text"
-            name="exam_month_nepali"
-            value={form.exam_month_nepali}
-            onChange={handleChange}
-            placeholder="e.g. Baisakh"
-            style={fieldStyle}
-          />
-        </div>
-        <div style={groupStyle}>
-          <label style={labelStyle}>Revision Buffer (months)</label>
-          <input
-            type="number"
-            name="revision_buffer_months"
-            value={form.revision_buffer_months}
-            onChange={handleChange}
-            min="0"
-            style={fieldStyle}
-          />
-        </div>
-        <button
-          type="submit"
-          style={{ padding: '10px 20px', backgroundColor: '#007BFF', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          Create Syllabus
-        </button>
-      </form>
+    <div className="add-page">
+      <div className="page-header">
+        <h1 className="page-title">Add New Syllabus</h1>
+        <p className="page-subtitle">Create a new study syllabus to track</p>
+      </div>
+
+      <div className="form-card">
+        {error && <div className="alert-error">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Syllabus Name *</label>
+            <input
+              className="form-input"
+              type="text"
+              name="syllabus_name"
+              value={form.syllabus_name}
+              onChange={handleChange}
+              placeholder="e.g. Computer Science Year 1"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Estimated Exam Date</label>
+            <input
+              className="form-input"
+              type="date"
+              name="estimated_exam_date"
+              value={form.estimated_exam_date}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Exam Month (Nepali)</label>
+            <input
+              className="form-input"
+              type="text"
+              name="exam_month_nepali"
+              value={form.exam_month_nepali}
+              onChange={handleChange}
+              placeholder="e.g. Baisakh"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Revision Buffer (months)</label>
+            <input
+              className="form-input"
+              type="number"
+              name="revision_buffer_months"
+              value={form.revision_buffer_months}
+              onChange={handleChange}
+              min="0"
+              style={{ maxWidth: '140px' }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg btn-full"
+            disabled={submitting}
+          >
+            {submitting ? 'Creating...' : 'Create Syllabus'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

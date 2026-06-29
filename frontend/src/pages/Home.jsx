@@ -4,22 +4,17 @@ import api from "../api";
 function Home() {
     const [syllabi, setSyllabi] = useState([]);
 
-    // Inline-form visibility: keyed by parent id
     const [showModuleForm, setShowModuleForm] = useState({});
     const [showChapterForm, setShowChapterForm] = useState({});
     const [showSubTopicForm, setShowSubTopicForm] = useState({});
 
-    // Inline edit state: { type: 'syllabus'|'module'|'chapter'|'subtopic', id, value }
     const [editState, setEditState] = useState(null);
 
-    // Inline-form input values: keyed by parent id
     const [moduleInputs, setModuleInputs] = useState({});
     const [chapterInputs, setChapterInputs] = useState({});
     const [subTopicInputs, setSubTopicInputs] = useState({});
 
-    useEffect(() => {
-        getSyllabi();
-    }, []);
+    useEffect(() => { getSyllabi(); }, []);
 
     const getSyllabi = () => {
         api.get("/api/syllabus/")
@@ -123,208 +118,228 @@ function Home() {
         return { total, completed, percentage: total === 0 ? 0 : Math.round((completed / total) * 100) };
     };
 
-    const ProgressBar = ({ percentage, height = 8, style = {} }) => (
-        <div style={{ background: '#e9ecef', borderRadius: '4px', overflow: 'hidden', height, ...style }}>
-            <div style={{ width: `${percentage}%`, height: '100%', background: '#28A745', transition: 'width 0.3s ease' }} />
-        </div>
-    );
-
     const overall = syllabi.reduce((acc, syl) => {
         const p = calcProgress(syl.modules);
         return { total: acc.total + p.total, completed: acc.completed + p.completed };
     }, { total: 0, completed: 0 });
     const overallPct = overall.total === 0 ? 0 : Math.round((overall.completed / overall.total) * 100);
 
-    const inputStyle = { padding: '5px', marginRight: '6px', borderRadius: '3px', border: '1px solid #ccc' };
-    const addBtnStyle = { padding: '5px 10px', backgroundColor: '#28A745', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', marginRight: '6px' };
-    const cancelBtnStyle = { padding: '5px 10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' };
-    const toggleBtnStyle = { background: 'none', border: '1px dashed #007BFF', color: '#007BFF', padding: '3px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.85em' };
-    const deleteBtnStyle = { background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '0.8em', padding: '1px 4px', marginLeft: '4px', borderRadius: '3px', lineHeight: 1 };
-    const editBtnStyle = { background: 'none', border: 'none', color: '#6c757d', cursor: 'pointer', fontSize: '0.8em', padding: '1px 4px', marginLeft: '2px', borderRadius: '3px', lineHeight: 1 };
-    const saveBtnStyle = { padding: '3px 8px', backgroundColor: '#007BFF', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.85em', marginLeft: '4px' };
+    const getDeleteEndpoint = (type) => {
+        const map = { syllabus: '/api/syllabus/', module: '/api/modules/', chapter: '/api/chapters/', subtopic: '/api/subtopics/' };
+        return map[type];
+    };
 
     const InlineEdit = ({ type, id, currentValue, display }) => {
         const isEditing = editState?.type === type && editState?.id === id;
         if (isEditing) {
             return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span className="inline-edit">
                     <input
                         autoFocus
+                        className="inline-input"
                         value={editState.value}
                         onChange={(e) => setEditState((prev) => ({ ...prev, value: e.target.value }))}
                         onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                        style={{ ...inputStyle, minWidth: '150px' }}
                     />
-                    <button style={saveBtnStyle} onClick={saveEdit}>Save</button>
-                    <button style={cancelBtnStyle} onClick={cancelEdit}>Cancel</button>
+                    <button className="inline-save-btn" onClick={saveEdit}>Save</button>
+                    <button className="inline-cancel-btn" onClick={cancelEdit}>Cancel</button>
                 </span>
             );
         }
         return (
-            <span>
-                {display}
-                <button style={editBtnStyle} title="Edit" onClick={() => startEdit(type, id, currentValue)}>✎</button>
-                <button style={deleteBtnStyle} title="Delete" onClick={() => deleteItem(
-                    type === 'syllabus' ? '/api/syllabus/' :
-                    type === 'module' ? '/api/modules/' :
-                    type === 'chapter' ? '/api/chapters/' : '/api/subtopics/', id)}>✕</button>
+            <span className="hover-item">
+                <span>{display}</span>
+                <span className="item-actions">
+                    <button className="action-btn action-btn-edit" title="Edit" onClick={() => startEdit(type, id, currentValue)}>✎</button>
+                    <button className="action-btn action-btn-delete" title="Delete" onClick={() => deleteItem(getDeleteEndpoint(type), id)}>✕</button>
+                </span>
             </span>
         );
     };
 
     return (
         <div>
-            <h2>My Syllabus Overview</h2>
+            <div className="page-header">
+                <h1 className="page-title">My Syllabi</h1>
+                <p className="page-subtitle">Track your study progress across all subjects</p>
+            </div>
 
-            {/* Overall Progress Summary */}
+            {/* Overall Progress */}
             {syllabi.length > 0 && (
-                <div style={{ marginBottom: '24px', border: '1px solid #28A745', borderRadius: '6px', padding: '16px', background: '#f8fff9' }}>
-                    <h3 style={{ margin: '0 0 10px 0', color: '#1a5c2a' }}>Overall Progress</h3>
-                    <div style={{ display: 'flex', gap: '24px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                        <span style={{ color: '#444' }}><strong>{syllabi.length}</strong> {syllabi.length === 1 ? 'syllabus' : 'syllabi'}</span>
-                        <span style={{ color: '#444' }}><strong>{overall.completed}/{overall.total}</strong> subtopics completed</span>
-                        <span style={{ color: '#28A745', fontWeight: 'bold' }}>{overallPct}%</span>
+                <div className="overall-progress">
+                    <div className="overall-progress-label">Overall Progress</div>
+                    <div className="overall-progress-pct">{overallPct}%</div>
+                    <div className="overall-progress-meta">
+                        <span><strong>{syllabi.length}</strong> {syllabi.length === 1 ? 'syllabus' : 'syllabi'}</span>
+                        <span><strong>{overall.completed}/{overall.total}</strong> subtopics completed</span>
                     </div>
-                    <ProgressBar percentage={overallPct} height={12} />
+                    <div className="progress-bar-lg">
+                        <div className="progress-fill-lg" style={{ width: `${overallPct}%` }} />
+                    </div>
                 </div>
             )}
 
-            {syllabi.length === 0 && <p style={{ color: '#666' }}>No syllabi yet. <a href="/add">Add one</a>.</p>}
+            {syllabi.length === 0 && (
+                <div className="empty-state">
+                    <span className="empty-state-icon">📚</span>
+                    <div className="empty-state-title">No syllabi yet</div>
+                    <div className="empty-state-sub">
+                        <a href="/add">Add your first syllabus</a> to start tracking.
+                    </div>
+                </div>
+            )}
+
+            {/* Syllabus Cards */}
             {syllabi.map((syllabus) => {
                 const sylProgress = calcProgress(syllabus.modules);
                 return (
-                <div key={syllabus.id} style={{ marginBottom: '30px', border: '1px solid #ddd', borderRadius: '6px', padding: '16px' }}>
-                    <h3 style={{ margin: '0 0 4px 0' }}>
-                        <InlineEdit type="syllabus" id={syllabus.id} currentValue={syllabus.syllabus_name} display={syllabus.syllabus_name} />
-                    </h3>
-                    {syllabus.estimated_exam_date && (
-                        <p style={{ margin: '0 0 6px 0', color: '#666', fontSize: '0.9em' }}>Exam: {syllabus.estimated_exam_date}</p>
-                    )}
-                    {/* Syllabus progress bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                        <ProgressBar percentage={sylProgress.percentage} style={{ flex: 1 }} />
-                        <span style={{ fontSize: '0.85em', color: '#555', whiteSpace: 'nowrap' }}>
-                            {sylProgress.completed}/{sylProgress.total} completed ({sylProgress.percentage}%)
-                        </span>
-                    </div>
-
-                    {/* Modules */}
-                    {syllabus.modules.map((module) => {
-                        const modProgress = calcModuleProgress(module);
-                        return (
-                        <div key={module.id} style={{ marginLeft: '16px', marginBottom: '16px', borderLeft: '3px solid #007BFF', paddingLeft: '12px' }}>
-                            <div style={{ marginBottom: '4px' }}>
-                                <strong>
-                                    <InlineEdit type="module" id={module.id} currentValue={module.module_name} display={module.module_name} />
-                                </strong>
-                                {module.weightage_marks && (
-                                    <span style={{ marginLeft: '8px', color: '#666', fontSize: '0.85em' }}>({module.weightage_marks} marks)</span>
-                                )}
+                    <div key={syllabus.id} className="syllabus-card">
+                        <div className="syllabus-card-header">
+                            <div className="syllabus-name-row">
+                                <span className="syllabus-name">
+                                    <InlineEdit type="syllabus" id={syllabus.id} currentValue={syllabus.syllabus_name} display={syllabus.syllabus_name} />
+                                </span>
                             </div>
-                            {/* Module progress bar */}
-                            {modProgress.total > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    <ProgressBar percentage={modProgress.percentage} style={{ flex: 1, maxWidth: '200px' }} />
-                                    <span style={{ fontSize: '0.78em', color: '#777' }}>
-                                        {modProgress.completed}/{modProgress.total} ({modProgress.percentage}%)
-                                    </span>
-                                </div>
+                            {syllabus.estimated_exam_date && (
+                                <div className="syllabus-meta">Exam: {syllabus.estimated_exam_date}</div>
                             )}
+                            <div className="progress-row">
+                                <div className="progress-bar-sm">
+                                    <div className="progress-fill-sm" style={{ width: `${sylProgress.percentage}%` }} />
+                                </div>
+                                <span className="progress-pct-label">
+                                    {sylProgress.completed}/{sylProgress.total} ({sylProgress.percentage}%)
+                                </span>
+                            </div>
+                        </div>
 
-                            {/* Chapters */}
-                            {module.chapters.map((chapter) => (
-                                <div key={chapter.id} style={{ marginLeft: '16px', marginBottom: '12px' }}>
-                                    <div style={{ marginBottom: '6px', fontStyle: 'italic', color: '#444' }}>
-                                        <InlineEdit type="chapter" id={chapter.id} currentValue={chapter.chapter_title} display={chapter.chapter_title} />
+                        {/* Modules */}
+                        {syllabus.modules.map((module) => {
+                            const modProgress = calcModuleProgress(module);
+                            return (
+                                <div key={module.id} className="module-block">
+                                    <div className="module-header">
+                                        <span className="module-name">
+                                            <InlineEdit type="module" id={module.id} currentValue={module.module_name} display={module.module_name} />
+                                        </span>
+                                        {module.weightage_marks && (
+                                            <span className="module-badge">{module.weightage_marks} marks</span>
+                                        )}
                                     </div>
 
-                                    {/* SubTopics */}
-                                    {chapter.sub_topics.map((sub) => (
-                                        <div key={sub.id} style={{ marginLeft: '16px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={sub.is_completed}
-                                                onChange={() => toggleSubTopic(sub.id, sub.is_completed)}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <span style={{ textDecoration: sub.is_completed ? 'line-through' : 'none', color: sub.is_completed ? '#999' : '#222' }}>
-                                                <InlineEdit type="subtopic" id={sub.id} currentValue={sub.topic_text} display={sub.topic_text} />
+                                    {modProgress.total > 0 && (
+                                        <div className="module-progress-row">
+                                            <div className="progress-bar-xs">
+                                                <div className="progress-fill-xs" style={{ width: `${modProgress.percentage}%` }} />
+                                            </div>
+                                            <span className="module-pct-label">
+                                                {modProgress.completed}/{modProgress.total} ({modProgress.percentage}%)
                                             </span>
+                                        </div>
+                                    )}
+
+                                    {/* Chapters */}
+                                    {module.chapters.map((chapter) => (
+                                        <div key={chapter.id} className="chapter-block">
+                                            <div className="chapter-title-row">
+                                                <span className="chapter-title">
+                                                    <InlineEdit type="chapter" id={chapter.id} currentValue={chapter.chapter_title} display={chapter.chapter_title} />
+                                                </span>
+                                            </div>
+
+                                            {/* SubTopics */}
+                                            {chapter.sub_topics.map((sub) => (
+                                                <div key={sub.id} className="subtopic-item">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={sub.is_completed}
+                                                        onChange={() => toggleSubTopic(sub.id, sub.is_completed)}
+                                                    />
+                                                    <span className={`subtopic-text${sub.is_completed ? ' completed' : ''}`}>
+                                                        <InlineEdit type="subtopic" id={sub.id} currentValue={sub.topic_text} display={sub.topic_text} />
+                                                    </span>
+                                                </div>
+                                            ))}
+
+                                            {/* Add SubTopic */}
+                                            <div style={{ paddingLeft: '14px', marginTop: '4px' }}>
+                                                {showSubTopicForm[chapter.id] ? (
+                                                    <div className="add-form-panel">
+                                                        <input
+                                                            className="add-form-input"
+                                                            type="text"
+                                                            placeholder="Sub-topic text"
+                                                            style={{ width: '220px' }}
+                                                            value={subTopicInputs[chapter.id]?.text || ''}
+                                                            onChange={(e) => setSubTopicInputs((prev) => ({ ...prev, [chapter.id]: { ...prev[chapter.id], text: e.target.value } }))}
+                                                            onKeyDown={(e) => e.key === 'Enter' && addSubTopic(chapter.id)}
+                                                            autoFocus
+                                                        />
+                                                        <button className="add-form-btn" onClick={() => addSubTopic(chapter.id)}>Add</button>
+                                                        <button className="add-form-cancel" onClick={() => setShowSubTopicForm((prev) => ({ ...prev, [chapter.id]: false }))}>Cancel</button>
+                                                    </div>
+                                                ) : (
+                                                    <button className="toggle-add-btn" onClick={() => setShowSubTopicForm((prev) => ({ ...prev, [chapter.id]: true }))}>+ Sub-topic</button>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
 
-                                    {/* Add SubTopic */}
-                                    <div style={{ marginLeft: '16px', marginTop: '6px' }}>
-                                        {showSubTopicForm[chapter.id] ? (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                    {/* Add Chapter */}
+                                    <div style={{ marginTop: '4px' }}>
+                                        {showChapterForm[module.id] ? (
+                                            <div className="add-form-panel">
                                                 <input
+                                                    className="add-form-input"
                                                     type="text"
-                                                    placeholder="Sub-topic text"
-                                                    value={subTopicInputs[chapter.id]?.text || ''}
-                                                    onChange={(e) => setSubTopicInputs((prev) => ({ ...prev, [chapter.id]: { ...prev[chapter.id], text: e.target.value } }))}
-                                                    style={{ ...inputStyle, width: '220px' }}
-                                                    onKeyDown={(e) => e.key === 'Enter' && addSubTopic(chapter.id)}
+                                                    placeholder="Chapter title"
+                                                    style={{ width: '200px' }}
+                                                    value={chapterInputs[module.id]?.title || ''}
+                                                    onChange={(e) => setChapterInputs((prev) => ({ ...prev, [module.id]: { title: e.target.value } }))}
+                                                    onKeyDown={(e) => e.key === 'Enter' && addChapter(module.id)}
+                                                    autoFocus
                                                 />
-                                                <button style={addBtnStyle} onClick={() => addSubTopic(chapter.id)}>Add</button>
-                                                <button style={cancelBtnStyle} onClick={() => setShowSubTopicForm((prev) => ({ ...prev, [chapter.id]: false }))}>Cancel</button>
+                                                <button className="add-form-btn" onClick={() => addChapter(module.id)}>Add</button>
+                                                <button className="add-form-cancel" onClick={() => setShowChapterForm((prev) => ({ ...prev, [module.id]: false }))}>Cancel</button>
                                             </div>
                                         ) : (
-                                            <button style={toggleBtnStyle} onClick={() => setShowSubTopicForm((prev) => ({ ...prev, [chapter.id]: true }))}>+ Sub-topic</button>
+                                            <button className="toggle-add-btn" onClick={() => setShowChapterForm((prev) => ({ ...prev, [module.id]: true }))}>+ Chapter</button>
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                            );
+                        })}
 
-                            {/* Add Chapter */}
-                            <div style={{ marginLeft: '16px', marginTop: '8px' }}>
-                                {showChapterForm[module.id] ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Chapter title"
-                                            value={chapterInputs[module.id]?.title || ''}
-                                            onChange={(e) => setChapterInputs((prev) => ({ ...prev, [module.id]: { title: e.target.value } }))}
-                                            style={{ ...inputStyle, width: '200px' }}
-                                            onKeyDown={(e) => e.key === 'Enter' && addChapter(module.id)}
-                                        />
-                                        <button style={addBtnStyle} onClick={() => addChapter(module.id)}>Add</button>
-                                        <button style={cancelBtnStyle} onClick={() => setShowChapterForm((prev) => ({ ...prev, [module.id]: false }))}>Cancel</button>
-                                    </div>
-                                ) : (
-                                    <button style={toggleBtnStyle} onClick={() => setShowChapterForm((prev) => ({ ...prev, [module.id]: true }))}>+ Chapter</button>
-                                )}
-                            </div>
+                        {/* Add Module */}
+                        <div className="syllabus-card-footer">
+                            {showModuleForm[syllabus.id] ? (
+                                <div className="add-form-panel">
+                                    <input
+                                        className="add-form-input"
+                                        type="text"
+                                        placeholder="Module name"
+                                        style={{ width: '180px' }}
+                                        value={moduleInputs[syllabus.id]?.name || ''}
+                                        onChange={(e) => setModuleInputs((prev) => ({ ...prev, [syllabus.id]: { ...prev[syllabus.id], name: e.target.value } }))}
+                                        onKeyDown={(e) => e.key === 'Enter' && addModule(syllabus.id)}
+                                        autoFocus
+                                    />
+                                    <input
+                                        className="add-form-input"
+                                        type="number"
+                                        placeholder="Marks (optional)"
+                                        style={{ width: '130px' }}
+                                        value={moduleInputs[syllabus.id]?.weightage || ''}
+                                        onChange={(e) => setModuleInputs((prev) => ({ ...prev, [syllabus.id]: { ...prev[syllabus.id], weightage: e.target.value } }))}
+                                    />
+                                    <button className="add-form-btn" onClick={() => addModule(syllabus.id)}>Add</button>
+                                    <button className="add-form-cancel" onClick={() => setShowModuleForm((prev) => ({ ...prev, [syllabus.id]: false }))}>Cancel</button>
+                                </div>
+                            ) : (
+                                <button className="toggle-add-btn" onClick={() => setShowModuleForm((prev) => ({ ...prev, [syllabus.id]: true }))}>+ Module</button>
+                            )}
                         </div>
-                        );
-                    })}
-
-                    {/* Add Module */}
-                    <div style={{ marginLeft: '16px', marginTop: '8px' }}>
-                        {showModuleForm[syllabus.id] ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Module name"
-                                    value={moduleInputs[syllabus.id]?.name || ''}
-                                    onChange={(e) => setModuleInputs((prev) => ({ ...prev, [syllabus.id]: { ...prev[syllabus.id], name: e.target.value } }))}
-                                    style={{ ...inputStyle, width: '180px' }}
-                                    onKeyDown={(e) => e.key === 'Enter' && addModule(syllabus.id)}
-                                />
-                                <input
-                                    type="number"
-                                    placeholder="Marks (optional)"
-                                    value={moduleInputs[syllabus.id]?.weightage || ''}
-                                    onChange={(e) => setModuleInputs((prev) => ({ ...prev, [syllabus.id]: { ...prev[syllabus.id], weightage: e.target.value } }))}
-                                    style={{ ...inputStyle, width: '120px' }}
-                                />
-                                <button style={addBtnStyle} onClick={() => addModule(syllabus.id)}>Add</button>
-                                <button style={cancelBtnStyle} onClick={() => setShowModuleForm((prev) => ({ ...prev, [syllabus.id]: false }))}>Cancel</button>
-                            </div>
-                        ) : (
-                            <button style={toggleBtnStyle} onClick={() => setShowModuleForm((prev) => ({ ...prev, [syllabus.id]: true }))}>+ Module</button>
-                        )}
                     </div>
-                </div>
                 );
             })}
         </div>
