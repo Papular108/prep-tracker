@@ -9,6 +9,9 @@ function Home() {
     const [showChapterForm, setShowChapterForm] = useState({});
     const [showSubTopicForm, setShowSubTopicForm] = useState({});
 
+    // Inline edit state: { type: 'syllabus'|'module'|'chapter'|'subtopic', id, value }
+    const [editState, setEditState] = useState(null);
+
     // Inline-form input values: keyed by parent id
     const [moduleInputs, setModuleInputs] = useState({});
     const [chapterInputs, setChapterInputs] = useState({});
@@ -27,6 +30,36 @@ function Home() {
     const toggleSubTopic = (id, current) => {
         api.patch(`/api/subtopics/${id}/`, { is_completed: !current })
             .then(() => getSyllabi())
+            .catch((err) => alert(err));
+    };
+
+    const deleteItem = (endpoint, id) => {
+        if (!confirm("Are you sure?")) return;
+        api.delete(`${endpoint}${id}/`)
+            .then(() => getSyllabi())
+            .catch((err) => alert(err));
+    };
+
+    const startEdit = (type, id, value) => setEditState({ type, id, value });
+    const cancelEdit = () => setEditState(null);
+
+    const saveEdit = () => {
+        if (!editState) return;
+        const { type, id, value } = editState;
+        const endpoints = {
+            syllabus: `/api/syllabus/${id}/`,
+            module: `/api/modules/${id}/`,
+            chapter: `/api/chapters/${id}/`,
+            subtopic: `/api/subtopics/${id}/`,
+        };
+        const fields = {
+            syllabus: { syllabus_name: value },
+            module: { module_name: value },
+            chapter: { chapter_title: value },
+            subtopic: { topic_text: value },
+        };
+        api.patch(endpoints[type], fields[type])
+            .then(() => { setEditState(null); getSyllabi(); })
             .catch((err) => alert(err));
     };
 
@@ -106,6 +139,38 @@ function Home() {
     const addBtnStyle = { padding: '5px 10px', backgroundColor: '#28A745', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', marginRight: '6px' };
     const cancelBtnStyle = { padding: '5px 10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' };
     const toggleBtnStyle = { background: 'none', border: '1px dashed #007BFF', color: '#007BFF', padding: '3px 8px', borderRadius: '3px', cursor: 'pointer', fontSize: '0.85em' };
+    const deleteBtnStyle = { background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '0.8em', padding: '1px 4px', marginLeft: '4px', borderRadius: '3px', lineHeight: 1 };
+    const editBtnStyle = { background: 'none', border: 'none', color: '#6c757d', cursor: 'pointer', fontSize: '0.8em', padding: '1px 4px', marginLeft: '2px', borderRadius: '3px', lineHeight: 1 };
+    const saveBtnStyle = { padding: '3px 8px', backgroundColor: '#007BFF', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '0.85em', marginLeft: '4px' };
+
+    const InlineEdit = ({ type, id, currentValue, display }) => {
+        const isEditing = editState?.type === type && editState?.id === id;
+        if (isEditing) {
+            return (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <input
+                        autoFocus
+                        value={editState.value}
+                        onChange={(e) => setEditState((prev) => ({ ...prev, value: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                        style={{ ...inputStyle, minWidth: '150px' }}
+                    />
+                    <button style={saveBtnStyle} onClick={saveEdit}>Save</button>
+                    <button style={cancelBtnStyle} onClick={cancelEdit}>Cancel</button>
+                </span>
+            );
+        }
+        return (
+            <span>
+                {display}
+                <button style={editBtnStyle} title="Edit" onClick={() => startEdit(type, id, currentValue)}>✎</button>
+                <button style={deleteBtnStyle} title="Delete" onClick={() => deleteItem(
+                    type === 'syllabus' ? '/api/syllabus/' :
+                    type === 'module' ? '/api/modules/' :
+                    type === 'chapter' ? '/api/chapters/' : '/api/subtopics/', id)}>✕</button>
+            </span>
+        );
+    };
 
     return (
         <div>
@@ -129,7 +194,9 @@ function Home() {
                 const sylProgress = calcProgress(syllabus.modules);
                 return (
                 <div key={syllabus.id} style={{ marginBottom: '30px', border: '1px solid #ddd', borderRadius: '6px', padding: '16px' }}>
-                    <h3 style={{ margin: '0 0 4px 0' }}>{syllabus.syllabus_name}</h3>
+                    <h3 style={{ margin: '0 0 4px 0' }}>
+                        <InlineEdit type="syllabus" id={syllabus.id} currentValue={syllabus.syllabus_name} display={syllabus.syllabus_name} />
+                    </h3>
                     {syllabus.estimated_exam_date && (
                         <p style={{ margin: '0 0 6px 0', color: '#666', fontSize: '0.9em' }}>Exam: {syllabus.estimated_exam_date}</p>
                     )}
@@ -147,7 +214,9 @@ function Home() {
                         return (
                         <div key={module.id} style={{ marginLeft: '16px', marginBottom: '16px', borderLeft: '3px solid #007BFF', paddingLeft: '12px' }}>
                             <div style={{ marginBottom: '4px' }}>
-                                <strong>{module.module_name}</strong>
+                                <strong>
+                                    <InlineEdit type="module" id={module.id} currentValue={module.module_name} display={module.module_name} />
+                                </strong>
                                 {module.weightage_marks && (
                                     <span style={{ marginLeft: '8px', color: '#666', fontSize: '0.85em' }}>({module.weightage_marks} marks)</span>
                                 )}
@@ -165,7 +234,9 @@ function Home() {
                             {/* Chapters */}
                             {module.chapters.map((chapter) => (
                                 <div key={chapter.id} style={{ marginLeft: '16px', marginBottom: '12px' }}>
-                                    <div style={{ marginBottom: '6px', fontStyle: 'italic', color: '#444' }}>{chapter.chapter_title}</div>
+                                    <div style={{ marginBottom: '6px', fontStyle: 'italic', color: '#444' }}>
+                                        <InlineEdit type="chapter" id={chapter.id} currentValue={chapter.chapter_title} display={chapter.chapter_title} />
+                                    </div>
 
                                     {/* SubTopics */}
                                     {chapter.sub_topics.map((sub) => (
@@ -177,7 +248,7 @@ function Home() {
                                                 style={{ cursor: 'pointer' }}
                                             />
                                             <span style={{ textDecoration: sub.is_completed ? 'line-through' : 'none', color: sub.is_completed ? '#999' : '#222' }}>
-                                                {sub.topic_text}
+                                                <InlineEdit type="subtopic" id={sub.id} currentValue={sub.topic_text} display={sub.topic_text} />
                                             </span>
                                         </div>
                                     ))}
