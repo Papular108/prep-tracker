@@ -318,7 +318,7 @@ class StudyLogViewSet(viewsets.ModelViewSet):
         qs = StudyLog.objects.filter(user=request.user)
         today = timezone.localdate()
 
-        # 1. daily_hours: last 90 days
+        # 1. daily_hours: last 90 days (extended to cover future-dated logs)
         start_90 = today - timedelta(days=89)
         daily_qs = (
             qs.filter(date__gte=start_90)
@@ -326,8 +326,11 @@ class StudyLogViewSet(viewsets.ModelViewSet):
             .annotate(hours=Sum('hours_spent'))
         )
         daily_map = {row['date']: float(row['hours']) for row in daily_qs}
+        latest_date = max(daily_map.keys(), default=today)
+        end_date = max(today, latest_date)
+        num_days = (end_date - start_90).days + 1
         daily_hours = []
-        for i in range(90):
+        for i in range(num_days):
             d = start_90 + timedelta(days=i)
             daily_hours.append({'date': d.isoformat(), 'hours': daily_map.get(d, 0)})
 
@@ -355,6 +358,8 @@ class StudyLogViewSet(viewsets.ModelViewSet):
                     sts = chapter.sub_topics.all()
                     total += sts.count()
                     completed += sts.filter(is_completed=True).count()
+                if total == 0:
+                    continue
                 pct = round((completed / total) * 100) if total > 0 else 0
                 completion_by_module.append({
                     'module_name': module.module_name,
